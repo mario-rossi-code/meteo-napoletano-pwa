@@ -1,0 +1,24 @@
+:root {
+    --card-bg: #ffffff26;
+    --highlight-color: #01a7e1;
+    --dark-blue: #00195f;
+    --text-color: #fff;
+    --font-family: "Balsamiq Sans", sans-serif;
+    --small: 1rem;
+    --font-size-large: 2rem;
+    --font-size-medium: 1.3rem;
+    --font-size-small: 1rem;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-family);
+}
+
+body {
+    min-height: 100vh;
+    color: var(--text-color);
+    background-color: var(--dark-blue);
+}

@@ -1,0 +1,18 @@
+<div class="hourly-forecast-container">
+  <div class="hourly-header">
+    <h3>{{ getWeatherDescription() }}</h3>
+    <p>{{ getTempRange() }}</p>
+  </div>
+  
+  <div class="hourly-scroll">
+    <div *ngFor="let hour of getHourlyForecasts()" class="hourly-card">
+      <div class="hour">{{ hour.time }}</div>
+      <i class="fas" [ngClass]="hour.icon"></i>
+      <div class="temp">{{ hour.temp }}°</div>
+      <div class="humidity">
+        <i class="fas fa-droplet"></i>
+        {{ hour.humidity }}%
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,16 @@
+<div class="forecast-container">
+  <div class="forecast-header">
+    <h3>Previsioni 6 Giorni</h3>
+  </div>
+  <div class="forecast-grid">
+    <div *ngFor="let day of getDailyForecasts()" class="forecast-day-card">
+      <h4>{{ day.date }}</h4>
+      <i class="fas" [ngClass]="day.icon"></i>
+      <div class="temps">
+        <span class="max">{{ day.maxTemp }}°</span>
+        <span class="min">{{ day.minTemp }}°</span>
+      </div>
+      <p class="description">{{ day.description }}</p>
+    </div>
+  </div>
+</div>

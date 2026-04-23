@@ -1,0 +1,42 @@
+<div class="weather-card" *ngIf="weatherData">
+  <div class="card-header">
+    <div class="city-info">
+      <i class="fas fa-location-dot"></i>
+      <h2 class="city-name">{{ cityName }}</h2>
+    </div>
+    <div class="date">{{ getCurrentDate() }}</div>
+  </div>
+
+  <div class="weather-main">
+    <div class="temp-section">
+      <div class="temperature">{{ getTemperature() }}°C</div>
+      <div class="description">{{ getDescription() }}</div>
+    </div>
+    <div class="icon-section">
+      <i class="fas" [ngClass]="getWeatherIcon()"></i>
+    </div>
+  </div>
+
+  <div class="details-grid">
+    <div class="detail-card">
+      <i class="fas fa-wind"></i>
+      <div class="label">Vento</div>
+      <div class="value">{{ getWindSpeed() }} km/h</div>
+    </div>
+    <div class="detail-card">
+      <i class="fas fa-droplet"></i>
+      <div class="label">Umidità</div>
+      <div class="value">{{ getHumidity() }}%</div>
+    </div>
+    <div class="detail-card">
+      <i class="fas fa-compress-alt"></i>
+      <div class="label">Pressione</div>
+      <div class="value">{{ getPressure() }} hPa</div>
+    </div>
+  </div>
+
+  <div class="curiosity-box">
+    <h3>Curiosità Napoletana</h3>
+    <p>{{ getCuriosity() }}</p>
+  </div>
+</div>

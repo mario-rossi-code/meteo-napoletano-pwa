@@ -1,0 +1,4 @@
+export const environmentProd = {
+  production: true,
+  apiBaseUrl: 'https://api.open-meteo.com/v1',
+};

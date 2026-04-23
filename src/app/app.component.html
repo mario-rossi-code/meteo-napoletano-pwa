@@ -1,0 +1,89 @@
+<!-- App Component Template -->
+<div class="app-container">
+  <!-- Header -->
+  <header class="app-header">
+    <h1 class="app-title">Meteo Napulitano</h1>
+    <p class="app-subtitle">Tutte 'e previsioni pe' te</p>
+  </header>
+
+  <!-- Search Box -->
+  <div class="search-box">
+    <input
+      type="text"
+      [(ngModel)]="cityInput"
+      (keypress)="onKeyPress($event)"
+      placeholder="Cerca na città..."
+      class="search-input"
+      autocomplete="off"
+    />
+    <button
+      (click)="onSearchSubmit()"
+      class="search-button"
+      title="Cerca meteo"
+    >
+      <i class="fas fa-search"></i>
+    </button>
+  </div>
+
+  <!-- Connection Status -->
+  <!-- <div class="status-bar" [class.offline]="!isOnline">
+    <span class="status-indicator"></span>
+    {{ isOnline ? '🟢 Online' : '🔴 Offline - Modalità Cache' }}
+  </div> -->
+
+  <!-- Update Notification -->
+  <div class="update-notification" *ngIf="hasUpdate">
+    <p>📦 Nuovo aggiornamento disponibile!</p>
+    <button (click)="activateUpdate()" class="btn-update">
+      Aggiorna ora
+    </button>
+  </div>
+
+  <!-- Error Messages -->
+  <div class="error-container" *ngIf="error$ | async as error">
+    <div class="error-message">
+      <span class="error-icon">❌</span>
+      <span>{{ error }}</span>
+    </div>
+  </div>
+
+  <!-- Loading Component -->
+  <app-loading
+  *ngIf="loading$ | async"
+  [phrase]="getCurrentLoadingPhrase()"
+></app-loading>
+
+  <!-- Main Content -->
+  <main class="main-content" *ngIf="!(loading$ | async)">
+  <!-- Weather Card -->
+  <app-weather-card
+    [weatherData]="weatherData$ | async"
+    [cityName]="cityName$ | async"
+  ></app-weather-card>
+
+  <!-- Hourly Forecast -->
+  <app-hourly-forecast
+    [weatherData]="weatherData$ | async"
+  ></app-hourly-forecast>
+
+  <!-- Daily Forecast -->
+  <app-forecast
+    [weatherData]="weatherData$ | async"
+  ></app-forecast>
+</main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <p>© Meteo Napulitano — Previsioni Meteorologiche</p>
+    <div class="footer-actions">
+      <button
+        (click)="installApp()"
+        *ngIf="isAppInstallable()"
+        class="btn-install"
+        title="Installa app"
+      >
+        📱 Installa
+      </button>
+    </div>
+  </footer>
+</div>

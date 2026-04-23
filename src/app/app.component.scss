@@ -1,0 +1,400 @@
+/**
+ * @fileoverview Stili principali applicazione
+ * @author Meteo Napulitano PWA
+ */
+
+// Variabili colore
+$primary-color: #01a7e1;
+$dark-blue: #00195f;
+$light-blue: #0286b6;
+$text-light: #ffffff;
+$text-muted: rgba(255, 255, 255, 0.6);
+$card-bg: rgba(255, 255, 255, 0.1);
+$border-color: rgba(255, 255, 255, 0.2);
+
+// Variabili dimensioni
+$header-height: 120px;
+$footer-height: 80px;
+$container-max-width: 800px;
+$border-radius: 20px;
+$transition: 0.3s ease;
+
+// Breakpoints
+$breakpoint-md: 600px;
+$breakpoint-sm: 360px;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: 'Balsamiq Sans', sans-serif;
+  background: linear-gradient(135deg, $dark-blue 0%, #003d7a 100%);
+  color: $text-light;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+// App Container
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  max-width: $container-max-width;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+// Header
+.app-header {
+  text-align: center;
+  padding: 1.5rem 0;
+  margin-bottom: 1rem;
+}
+
+.app-title {
+  font-size: 2rem;
+  color: $primary-color;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+
+  @media (max-width: $breakpoint-md) {
+    font-size: 1.8rem;
+  }
+
+  @media (max-width: $breakpoint-sm) {
+    font-size: 1.5rem;
+  }
+}
+
+.app-subtitle {
+  font-size: 1rem;
+  color: $text-muted;
+  font-style: italic;
+}
+
+// Search Box
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 40px;
+  backdrop-filter: blur(10px);
+  border: 1px solid $border-color;
+  transition: box-shadow $transition;
+
+  &:hover,
+  &:focus-within {
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: $text-light;
+  font-size: 1rem;
+  font-family: inherit;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:focus {
+    transition: background $transition;
+  }
+}
+
+.search-button {
+  padding: 0.8rem;
+  border: none;
+  border-radius: 50%;
+  background: $primary-color;
+  color: $text-light;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all $transition;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  height: 45px;
+
+  &:hover {
+    background: $light-blue;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(1, 167, 225, 0.4);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  i {
+    font-size: 1rem;
+  }
+}
+
+// Status Bar
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(76, 175, 80, 0.2);
+  border-radius: 10px;
+  border-left: 4px solid #4caf50;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all $transition;
+
+  &.offline {
+    background: rgba(244, 67, 54, 0.2);
+    border-left-color: #f44336;
+  }
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: pulse 2s infinite;
+
+  .offline & {
+    background: #f44336;
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Update Notification
+.update-notification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 193, 7, 0.2));
+  border-radius: 10px;
+  border-left: 4px solid #ff9800;
+  animation: slideDown 0.3s ease;
+
+  p {
+    flex: 1;
+    margin: 0;
+    color: $text-light;
+    font-weight: 500;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.btn-update {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  background: #ff9800;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all $transition;
+  white-space: nowrap;
+
+  &:hover {
+    background: #f57c00;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Error Container
+.error-container {
+  margin-bottom: 1rem;
+  animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(244, 67, 54, 0.2);
+  border-radius: 10px;
+  border-left: 4px solid #f44336;
+  color: #ffebee;
+  font-weight: 500;
+
+  .error-icon {
+    font-size: 1.2rem;
+  }
+}
+
+// Main Content
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// Footer
+.app-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid $border-color;
+  text-align: center;
+  color: $text-muted;
+  font-size: 0.9rem;
+
+  p {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+}
+
+.btn-install {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid $primary-color;
+  border-radius: 8px;
+  background: transparent;
+  color: $primary-color;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all $transition;
+  font-family: inherit;
+
+  &:hover {
+    background: $primary-color;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(1, 167, 225, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Responsive Design
+@media (max-width: $breakpoint-md) {
+  .app-container {
+    padding: 0.8rem;
+  }
+
+  .app-header {
+    padding: 1rem 0;
+    margin-bottom: 0.8rem;
+  }
+
+  .search-box {
+    margin-bottom: 0.8rem;
+    padding: 0.4rem;
+  }
+
+  .search-input {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .main-content {
+    gap: 0.8rem;
+  }
+}
+
+@media (max-width: $breakpoint-sm) {
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  .app-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .search-box {
+    border-radius: 25px;
+  }
+
+  .search-button {
+    min-width: 40px;
+    height: 40px;
+    padding: 0.6rem;
+
+    i {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .search-box,
+  .status-bar,
+  .update-notification,
+  .app-footer {
+    display: none;
+  }
+
+  .app-container {
+    max-width: 100%;
+    padding: 0;
+  }
+}
