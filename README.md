@@ -17,7 +17,7 @@ To start a local development server visible to all devices connected to the same
 ```bash
 ng serve --host 0.0.0.0
 ```
-FInd IPV4 address of the computer where project is running
+Find IPV4 address of the computer where project is running
 
 On any other device connected to the same network, open a browser and type:
 IPV4_ADDRESS:4200
