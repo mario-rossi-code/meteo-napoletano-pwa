@@ -1,7 +1,7 @@
 /**
  * @fileoverview Servizio meteorologico per gestire i dati meteo
  * @author Meteo Napulitano PWA
- * 
+ *
  * @description Servizio centrale che gestisce:
  * - Recupero dati meteo da API Open-Meteo
  * - Geocodifica città
@@ -11,13 +11,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import {
-  BehaviorSubject,
-  Observable,
-  throwError,
-  of,
-  timer,
-} from 'rxjs';
+import { BehaviorSubject, Observable, throwError, of, timer } from 'rxjs';
 import {
   catchError,
   tap,
@@ -36,12 +30,7 @@ import {
   WEATHER_DESCRIPTIONS_IT,
   DEFAULT_CITY,
 } from '../constants/weather-constants';
-import {
-  WeatherData,
-  GeocodingResult,
-  WeatherCondition,
-  CacheData,
-} from '../models/weather.model';
+import { WeatherData, GeocodingResult, WeatherCondition, CacheData } from '../models/weather.model';
 
 /**
  * @class WeatherService
@@ -84,12 +73,10 @@ export class WeatherService {
    * @private
    */
   private initializeCache(): void {
-    const isCacheValid = this.isCacheValid(
-      CACHE_CONFIG.STORAGE_KEY_PREFIX + DEFAULT_CITY
-    );
+    const isCacheValid = this.isCacheValid(CACHE_CONFIG.STORAGE_KEY_PREFIX + DEFAULT_CITY);
     if (isCacheValid) {
       const cachedData = this.getFromCache<WeatherData>(
-        CACHE_CONFIG.STORAGE_KEY_PREFIX + DEFAULT_CITY
+        CACHE_CONFIG.STORAGE_KEY_PREFIX + DEFAULT_CITY,
       );
       if (cachedData) {
         this.weatherDataSubject.next(cachedData);
@@ -108,74 +95,69 @@ export class WeatherService {
    * );
    */
   searchWeatherByCity(cityName: string): Observable<WeatherData> {
-  if (!cityName.trim()) {
-    this.loadingSubject.next(false); // Importante: reset loading anche in caso di errore
-    return throwError(() => new Error('Nome città non valido'));
+    if (!cityName.trim()) {
+      this.loadingSubject.next(false); // Importante: reset loading anche in caso di errore
+      return throwError(() => new Error('Nome città non valido'));
+    }
+
+    this.loadingSubject.next(true);
+    this.errorSubject.next(null);
+    this.showRandomLoadingPhrase();
+
+    return this.geocodeCity(cityName.trim()).pipe(
+      switchMap((result) => {
+        this.cityNameSubject.next(result.name);
+        return this.fetchWeatherData(result.latitude, result.longitude);
+      }),
+      tap((data) => {
+        this.weatherDataSubject.next(data);
+        this.saveToCache(
+          CACHE_CONFIG.STORAGE_KEY_PREFIX + cityName,
+          data,
+          CACHE_CONFIG.WEATHER_TTL,
+        );
+        this.loadingSubject.next(false); // Successo: disattiva loading
+      }),
+      catchError((error) => {
+        const errorMsg = error.message || 'Errore nel recupero dei dati meteo';
+        this.errorSubject.next(errorMsg);
+        this.loadingSubject.next(false); // ERRORE: disattiva loading
+        return throwError(() => error);
+      }),
+      retry({ count: 1, delay: 1000 }),
+      shareReplay(1),
+    );
   }
 
-  this.loadingSubject.next(true);
-  this.errorSubject.next(null);
-  this.showRandomLoadingPhrase();
-
-  return this.geocodeCity(cityName.trim()).pipe(
-    switchMap((result) => {
-      this.cityNameSubject.next(result.name);
-      return this.fetchWeatherData(result.latitude, result.longitude);
-    }),
-    tap((data) => {
-      this.weatherDataSubject.next(data);
-      this.saveToCache(
-        CACHE_CONFIG.STORAGE_KEY_PREFIX + cityName,
-        data,
-        CACHE_CONFIG.WEATHER_TTL
-      );
-      this.loadingSubject.next(false); // Successo: disattiva loading
-    }),
-    catchError((error) => {
-      const errorMsg = error.message || 'Errore nel recupero dei dati meteo';
-      this.errorSubject.next(errorMsg);
-      this.loadingSubject.next(false); // ERRORE: disattiva loading
-      return throwError(() => error);
-    }),
-    retry({ count: 1, delay: 1000 }),
-    shareReplay(1)
-  );
-}
-
-/**
+  /**
    * @method searchWeatherByCoordinates
    * @description Cerca il meteo per coordinate geografiche
    * @param {number} latitude - Latitudine
    * @param {number} longitude - Longitudine
    * @returns {Observable<WeatherData>} Dati meteorologici
    */
-searchWeatherByCoordinates(
-  latitude: number,
-  longitude: number
-): Observable<WeatherData> {
-  this.loadingSubject.next(true);
-  this.errorSubject.next(null);
-  this.showRandomLoadingPhrase();
+  searchWeatherByCoordinates(latitude: number, longitude: number): Observable<WeatherData> {
+    this.loadingSubject.next(true);
+    this.errorSubject.next(null);
+    this.showRandomLoadingPhrase();
 
-  return this.reverseGeocode(latitude, longitude).pipe(
-    switchMap((cityName) => {
-      this.cityNameSubject.next(cityName);
-      return this.fetchWeatherData(latitude, longitude);
-    }),
-    tap((data) => {
-      this.weatherDataSubject.next(data);
-      this.loadingSubject.next(false); // Successo: disattiva loading
-    }),
-    catchError((error) => {
-      this.errorSubject.next(error.message || 'Errore geocoding inverso');
-      this.loadingSubject.next(false); // ERRORE: disattiva loading
-      return throwError(() => error);
-    }),
-    shareReplay(1)
-  );
-}
-
-  
+    return this.reverseGeocode(latitude, longitude).pipe(
+      switchMap((cityName) => {
+        this.cityNameSubject.next(cityName);
+        return this.fetchWeatherData(latitude, longitude);
+      }),
+      tap((data) => {
+        this.weatherDataSubject.next(data);
+        this.loadingSubject.next(false); // Successo: disattiva loading
+      }),
+      catchError((error) => {
+        this.errorSubject.next(error.message || 'Errore geocoding inverso');
+        this.loadingSubject.next(false); // ERRORE: disattiva loading
+        return throwError(() => error);
+      }),
+      shareReplay(1),
+    );
+  }
 
   /**
    * @method geocodeCity
@@ -199,60 +181,148 @@ searchWeatherByCoordinates(
       format: 'json',
     });
 
-    return this.fetchData<any>(
-      `${API_ENDPOINTS.GEOCODING}?${params.toString()}`
-    ).pipe(
+    return this.fetchData<any>(`${API_ENDPOINTS.GEOCODING}?${params.toString()}`).pipe(
       switchMap((response) => {
         if (!response.results || response.results.length === 0) {
           return throwError(() => new Error('Città non trovata'));
         }
 
         const result: GeocodingResult = response.results[0];
-        this.saveToCache(
-          cacheKey,
-          result,
-          CACHE_CONFIG.GEO_TTL
-        );
+        this.saveToCache(cacheKey, result, CACHE_CONFIG.GEO_TTL);
 
         return of(result);
       }),
-      catchError((error) =>
-        throwError(() => new Error(`Errore geocodifica: ${error.message}`))
-      )
+      catchError((error) => throwError(() => new Error(`Errore geocodifica: ${error.message}`))),
     );
   }
 
   /**
    * @method reverseGeocode
-   * @description Geocodifica inversa: coordinate -> nome città
+   * @description Geocodifica inversa per ottenere il quartiere
    * @private
    * @param {number} latitude - Latitudine
    * @param {number} longitude - Longitudine
-   * @returns {Observable<string>} Nome città
+   * @returns {Observable<string>} Nome del quartiere
    */
-  private reverseGeocode(
-    latitude: number,
-    longitude: number
-  ): Observable<string> {
-    const params = new URLSearchParams({
-      latitude: latitude.toString(),
-      longitude: longitude.toString(),
-      format: 'json',
+  private reverseGeocode(latitude: number, longitude: number): Observable<string> {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=it&zoom=18`;
+  
+  return this.fetchDataWithOptions<any>(url, {
+    headers: { 'User-Agent': 'MeteoNapulitanoApp/1.0' }
+  }).pipe(
+    switchMap((response) => {
+      if (response?.display_name) {
+        // Prendi la prima parte del display_name ed escludi i numeri civici
+        let location = response.display_name.split(',')[0].trim();
+        
+        // Se la prima parte è una via con numero, prendi la seconda
+        if (/\d/.test(location) && location.includes(' ')) {
+          const parts = response.display_name.split(',');
+          location = parts[1]?.trim() || parts[0].trim();
+        }
+        
+        return of(location);
+      }
+      return of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+    }),
+    catchError(() => of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`))
+  );
+}
+
+  /**
+   * @method isAdministrativeArea
+   * @description Verifica se è un'area amministrativa (non un quartiere)
+   * @private
+   */
+  private isAdministrativeArea(name: string): boolean {
+    const adminTerms = [
+      'Municipalità',
+      'Municipality',
+      'Distretto',
+      'District',
+      'Circoscrizione',
+      'Comune',
+    ];
+    return adminTerms.some((term) => name.includes(term));
+  }
+
+  /**
+   * @method isMunicipality
+   * @description Verifica se un nome è una municipalità amministrativa
+   * @private
+   * @param {string} name - Nome da verificare
+   * @returns {boolean} True se è una municipalità
+   */
+  private isMunicipality(name: string): boolean {
+    const municipalityPatterns = [
+      /municipalità/i,
+      /municipality/i,
+      /distretto/i,
+      /district/i,
+      /circoscrizione/i,
+    ];
+
+    return municipalityPatterns.some((pattern) => pattern.test(name));
+  }
+
+  /**
+   * @method extractNeighborhoodFromDisplayName
+   * @description Estrae il quartiere dal display_name di Nominatim
+   * @private
+   * @param {string} displayName - Display name completo
+   * @returns {string|null} Nome del quartiere o null
+   */
+  private extractNeighborhoodFromDisplayName(displayName: string): string | null {
+    if (!displayName) return null;
+
+    // Il display_name è tipo: "San Pietro a Patierno, Municipalità 7, Napoli, Campania, Italia"
+    // Prendiamo la prima parte prima della virgola
+    const parts = displayName.split(',');
+
+    if (parts.length > 0) {
+      const firstPart = parts[0].trim();
+      // Se la prima parte non è una municipalità, è probabilmente il quartiere
+      if (!this.isMunicipality(firstPart)) {
+        return firstPart;
+      }
+
+      // Altrimenti prova con la seconda parte
+      if (parts.length > 1) {
+        const secondPart = parts[1].trim();
+        if (!this.isMunicipality(secondPart)) {
+          return secondPart;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @method fetchDataWithOptions
+   * @description Fetch generico con opzioni
+   * @private
+   * @param {string} url - URL della richiesta
+   * @param {RequestInit} options - Opzioni fetch
+   * @returns {Observable<T>} Dati recuperati
+   */
+  private fetchDataWithOptions<T>(url: string, options?: RequestInit): Observable<T> {
+    return new Observable((observer) => {
+      fetch(url, options)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then((data: T) => {
+          observer.next(data);
+          observer.complete();
+        })
+        .catch((error) => {
+          observer.error(error);
+        });
     });
-
-    const url = `https://nominatim.openstreetmap.org/reverse?${params.toString()}`;
-
-    return this.fetchData<any>(url).pipe(
-      switchMap((response) => {
-        const city =
-          response.address?.city ||
-          response.address?.town ||
-          response.address?.village ||
-          'Posizione sconosciuta';
-        return of(city);
-      }),
-      catchError(() => of('Posizione sconosciuta'))
-    );
   }
 
   /**
@@ -263,28 +333,18 @@ searchWeatherByCoordinates(
    * @param {number} longitude - Longitudine
    * @returns {Observable<WeatherData>} Dati meteorologici
    */
-  private fetchWeatherData(
-    latitude: number,
-    longitude: number
-  ): Observable<WeatherData> {
+  private fetchWeatherData(latitude: number, longitude: number): Observable<WeatherData> {
     const params = new URLSearchParams({
       latitude: latitude.toString(),
       longitude: longitude.toString(),
-      current:
-        'temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,pressure_msl',
+      current: 'temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,pressure_msl',
       daily: 'weather_code,temperature_2m_max,temperature_2m_min',
       hourly: 'temperature_2m,relative_humidity_2m,weather_code',
       timezone: 'auto',
     });
 
-    return this.fetchData<WeatherData>(
-      `${API_ENDPOINTS.OPEN_METEO}?${params.toString()}`
-    ).pipe(
-      catchError((error) =>
-        throwError(
-          () => new Error(`Errore API meteo: ${error.message}`)
-        )
-      )
+    return this.fetchData<WeatherData>(`${API_ENDPOINTS.OPEN_METEO}?${params.toString()}`).pipe(
+      catchError((error) => throwError(() => new Error(`Errore API meteo: ${error.message}`))),
     );
   }
 
@@ -301,9 +361,7 @@ searchWeatherByCoordinates(
       fetch(url)
         .then((response) => {
           if (!response.ok) {
-            throw new Error(
-              `HTTP Error: ${response.status} ${response.statusText}`
-            );
+            throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
           }
           return response.json();
         })
@@ -334,8 +392,8 @@ searchWeatherByCoordinates(
    * @returns {string} Descrizione napoletana casuale
    */
   getRandomDescription(condition: WeatherCondition): string {
-    const descriptions = NEAPOLITAN_DESCRIPTIONS[condition] ||
-      NEAPOLITAN_DESCRIPTIONS[WeatherCondition.DEFAULT];
+    const descriptions =
+      NEAPOLITAN_DESCRIPTIONS[condition] || NEAPOLITAN_DESCRIPTIONS[WeatherCondition.DEFAULT];
     const randomIndex = Math.floor(Math.random() * descriptions.length);
     return descriptions[randomIndex];
   }

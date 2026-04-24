@@ -65,7 +65,7 @@ export class GeolocationService {
 
       const options: PositionOptions = {
         timeout: GeolocationService.GEOLOCATION_TIMEOUT,
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         maximumAge: 5 * 60 * 1000, // 5 minuti
       };
 
@@ -153,7 +153,7 @@ export class GeolocationService {
     }
 
     const options: PositionOptions = {
-      enableHighAccuracy: false,
+      enableHighAccuracy: true,
       timeout: GeolocationService.GEOLOCATION_TIMEOUT,
       maximumAge: 0,
     };

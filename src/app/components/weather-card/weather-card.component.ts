@@ -3,7 +3,15 @@
  * File: src/app/components/weather-card/weather-card.component.ts
  */
 
-import { Component, Input } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  inject,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { WeatherData, WeatherCondition } from '../../models/weather.model';
 import { WeatherService } from '../../services/weather.service';
@@ -13,7 +21,6 @@ import {
   NIGHT_HOUR_START,
   NIGHT_HOUR_END,
 } from '../../constants/weather-constants';
-import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-weather-card',
@@ -21,8 +28,9 @@ import { inject } from '@angular/core';
   imports: [CommonModule],
   templateUrl: './weather-card.component.html',
   styleUrls: ['./weather-card.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class WeatherCardComponent {
+export class WeatherCardComponent implements OnInit, OnChanges {
   @Input() weatherData: WeatherData | null = null;
   @Input() cityName: string | null = null;
 
@@ -30,10 +38,72 @@ export class WeatherCardComponent {
   protected WEATHER_ICONS = WEATHER_ICONS;
   protected CURIOSITIES = CURIOSITIES;
 
+  // Proprietà memorizzate per evitare ricalcoli casuali
+  protected weatherIcon: string = '';
+  protected description: string = '';
+  protected curiosity: string = '';
+  protected temperature: number = 0;
+  protected humidity: number = 0;
+  protected windSpeed: number = 0;
+  protected pressure: number = 0;
+  protected currentDate: string = '';
+
+  ngOnInit(): void {
+    this.updateWeatherProperties();
+    this.updateDate();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['weatherData']) {
+      this.updateWeatherProperties();
+    }
+  }
+
   /**
-   * Ritorna l'icona meteo in base all'ora del giorno
+   * Aggiorna tutte le proprietà del meteo quando i dati cambiano
    */
-  getWeatherIcon(): string {
+  private updateWeatherProperties(): void {
+    if (!this.weatherData) {
+      this.resetProperties();
+      return;
+    }
+
+    const code = this.weatherData.current.weather_code;
+    const condition = this.weatherService.weatherCodeToCondition(code);
+
+    // Calcola descrizione (una volta sola)
+    this.description = this.weatherService.getRandomDescription(condition);
+
+    // Calcola curiosità basata sulla descrizione
+    this.curiosity = this.CURIOSITIES[this.description] || 'Che tiempo che sta facendo!';
+
+    // Calcola icona meteo
+    this.weatherIcon = this.calculateWeatherIcon();
+
+    // Calcola valori numerici
+    this.temperature = Math.round(this.weatherData.current.temperature_2m || 0);
+    this.humidity = this.weatherData.current.relative_humidity_2m || 0;
+    this.windSpeed = Math.round(this.weatherData.current.wind_speed_10m || 0);
+    this.pressure = this.weatherData.current.pressure_msl || 0;
+  }
+
+  /**
+   * Aggiorna la data corrente
+   */
+  private updateDate(): void {
+    const now = new Date();
+    this.currentDate = now.toLocaleDateString('it-IT', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  /**
+   * Calcola l'icona meteo in base all'ora del giorno
+   */
+  private calculateWeatherIcon(): string {
     if (!this.weatherData) return WEATHER_ICONS.default;
 
     const code = this.weatherData.current.weather_code;
@@ -56,62 +126,71 @@ export class WeatherCardComponent {
   }
 
   /**
-   * Ritorna la descrizione napoletana casuale
+   * Resetta le proprietà quando non ci sono dati
+   */
+  private resetProperties(): void {
+    this.weatherIcon = WEATHER_ICONS.default;
+    this.description = '';
+    this.curiosity = 'Nessun dato meteo disponibile';
+    this.temperature = 0;
+    this.humidity = 0;
+    this.windSpeed = 0;
+    this.pressure = 0;
+  }
+
+  /**
+   * Ritorna l'icona meteo
+   */
+  getWeatherIcon(): string {
+    return this.weatherIcon;
+  }
+
+  /**
+   * Ritorna la descrizione napoletana
    */
   getDescription(): string {
-    if (!this.weatherData) return '';
-
-    const code = this.weatherData.current.weather_code;
-    const condition = this.weatherService.weatherCodeToCondition(code);
-    return this.weatherService.getRandomDescription(condition);
+    return this.description;
   }
 
   /**
    * Ritorna la curiosità in base alla descrizione
    */
   getCuriosity(): string {
-    const description = this.getDescription();
-    return this.CURIOSITIES[description] || 'Che tiempo che sta facendo!';
+    return this.curiosity;
   }
 
   /**
    * Formatta la temperatura
    */
   getTemperature(): number {
-    return Math.round(this.weatherData?.current.temperature_2m || 0);
+    return this.temperature;
   }
 
   /**
    * Ritorna umidità
    */
   getHumidity(): number {
-    return this.weatherData?.current.relative_humidity_2m || 0;
+    return this.humidity;
   }
 
   /**
    * Ritorna velocità vento
    */
   getWindSpeed(): number {
-    return Math.round(this.weatherData?.current.wind_speed_10m || 0);
+    return this.windSpeed;
   }
 
   /**
    * Ritorna pressione
    */
   getPressure(): number {
-    return this.weatherData?.current.pressure_msl || 0;
+    return this.pressure;
   }
 
   /**
    * Ritorna data formattata
    */
   getCurrentDate(): string {
-    const now = new Date();
-    return now.toLocaleDateString('it-IT', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return this.currentDate;
   }
 }

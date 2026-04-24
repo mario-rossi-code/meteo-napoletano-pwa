@@ -1,7 +1,7 @@
 /**
  * @fileoverview Servizio PWA per Service Worker e notifiche
  * @author Meteo Napulitano PWA
- * 
+ *
  * @description Gestisce:
  * - Registrazione Service Worker
  * - Notifiche push
@@ -11,8 +11,8 @@
 
 import { Injectable, inject } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
-import { BehaviorSubject, Observable, interval } from 'rxjs';
-import { tap, switchMap } from 'rxjs/operators';
+import { BehaviorSubject, Observable, interval, of } from 'rxjs';
+import { tap, switchMap, catchError, filter } from 'rxjs/operators';
 
 /**
  * @interface UpdateNotification
@@ -31,7 +31,7 @@ interface UpdateNotification {
   providedIn: 'root',
 })
 export class PwaService {
-  /** @private Injector di SwUpdate */
+  /** @private Injector di SwUpdate (opzionale) */
   private readonly swUpdate = inject(SwUpdate, { optional: true });
 
   /** @private Soggetto per notifiche aggiornamento */
@@ -54,10 +54,24 @@ export class PwaService {
   /** @private Deferrable install prompt */
   private deferredPrompt: Event | null = null;
 
+  /** @private Flag per verificare se siamo in ambiente browser */
+  private isBrowser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
+
   constructor() {
-    this.initializePwa();
-    this.checkForUpdates();
-    this.setupInstallPrompt();
+    // Verifica se siamo in ambiente browser prima di inizializzare
+    if (this.isBrowser) {
+      this.initializePwa();
+      this.setupInstallPrompt();
+
+      // Inizializza controlli aggiornamenti solo se SwUpdate è disponibile
+      if (this.swUpdate && this.swUpdate.isEnabled) {
+        this.checkForUpdates();
+      } else {
+        console.log('ℹ️ Service Worker non disponibile - PWA features limitate');
+      }
+    } else {
+      console.log('ℹ️ Ambiente non browser - PWA features disabilitate');
+    }
   }
 
   /**
@@ -74,7 +88,7 @@ export class PwaService {
     console.log(`📱 PWA Mode: ${this.isStandalone ? 'Standalone' : 'Browser'}`);
 
     // Registra Service Worker se supportato
-    if ('serviceWorker' in navigator && this.swUpdate) {
+    if ('serviceWorker' in navigator) {
       this.registerServiceWorker();
     }
   }
@@ -103,7 +117,7 @@ export class PwaService {
         });
       })
       .catch((error) => {
-        console.error('❌ Errore registrazione Service Worker:', error);
+        console.warn('⚠️ Service Worker non registrato (forse in sviluppo):', error);
       });
   }
 
@@ -113,17 +127,24 @@ export class PwaService {
    * @private
    */
   private checkForUpdates(): void {
-    if (!this.swUpdate) {
-      console.warn('SwUpdate non disponibile');
+    // Verifica che SwUpdate sia disponibile e abilitato
+    if (!this.swUpdate || !this.swUpdate.isEnabled) {
+      console.log('ℹ️ SwUpdate non disponibile, skip aggiornamenti automatici');
       return;
     }
 
     // Controlla immediatamente
-    this.swUpdate.checkForUpdate();
+    this.checkForUpdateSafe();
 
     // Poi ogni ora
     interval(60 * 60 * 1000)
-      .pipe(switchMap(() => this.swUpdate!.checkForUpdate()))
+      .pipe(
+        switchMap(() => this.checkForUpdateSafe()),
+        catchError((error) => {
+          console.warn('⚠️ Errore controllo aggiornamenti:', error);
+          return of(undefined);
+        }),
+      )
       .subscribe();
 
     // Ascolta aggiornamenti disponibili
@@ -145,16 +166,42 @@ export class PwaService {
   }
 
   /**
+   * @method checkForUpdateSafe
+   * @description Controllo aggiornamenti sicuro (senza errori)
+   * @private
+   */
+  private async checkForUpdateSafe(): Promise<void> {
+    if (!this.swUpdate || !this.swUpdate.isEnabled) {
+      return;
+    }
+
+    try {
+      await this.swUpdate.checkForUpdate();
+    } catch (error) {
+      // Ignora l'errore di Service Worker non disponibile
+      if (error instanceof Error && !error.message.includes('disabled or not supported')) {
+        console.warn('⚠️ Errore controllo aggiornamenti:', error);
+      }
+    }
+  }
+
+  /**
    * @method activateUpdate
    * @description Attiva aggiornamento e ricarica la pagina
    */
-  activateUpdate(): void {
-    if (!this.swUpdate) return;
+  async activateUpdate(): Promise<void> {
+    if (!this.swUpdate || !this.swUpdate.isEnabled) {
+      console.warn('⚠️ Impossibile attivare aggiornamento: SwUpdate non disponibile');
+      return;
+    }
 
-    this.swUpdate.activateUpdate().then(() => {
+    try {
+      await this.swUpdate.activateUpdate();
       console.log('✅ Aggiornamento attivato, ricarico...');
       window.location.reload();
-    });
+    } catch (error) {
+      console.error('❌ Errore attivazione aggiornamento:', error);
+    }
   }
 
   /**
@@ -199,11 +246,11 @@ export class PwaService {
       const choiceResult = await (this.deferredPrompt as any).userChoice;
 
       if (choiceResult.outcome === 'accepted') {
-        console.log('✅ Utente ha accettato l\'installazione');
+        console.log("✅ Utente ha accettato l'installazione");
         this.deferredPrompt = null;
         return true;
       } else {
-        console.log('❌ Utente ha rifiutato l\'installazione');
+        console.log("❌ Utente ha rifiutato l'installazione");
         return false;
       }
     } catch (error) {
@@ -244,10 +291,12 @@ export class PwaService {
    *   tag: 'meteo-alert'
    * });
    */
-  async sendNotification(
-    title: string,
-    options?: NotificationOptions
-  ): Promise<void> {
+  async sendNotification(title: string, options?: NotificationOptions): Promise<void> {
+    if (!this.isBrowser) {
+      console.warn('Notifiche non supportate in questo ambiente');
+      return;
+    }
+
     if (!('Notification' in window)) {
       console.warn('Notifiche non supportate');
       return;
@@ -276,6 +325,11 @@ export class PwaService {
    * @returns {Promise<NotificationPermission>} Permesso ottenuto
    */
   async requestNotificationPermission(): Promise<NotificationPermission> {
+    if (!this.isBrowser) {
+      console.warn('Notifiche non supportate in questo ambiente');
+      return 'denied';
+    }
+
     if (!('Notification' in window)) {
       console.warn('Notifiche non supportate');
       return 'denied';
@@ -301,7 +355,7 @@ export class PwaService {
    * });
    */
   async sharePage(data: ShareData): Promise<void> {
-    if (!navigator.share) {
+    if (!this.isBrowser || !navigator.share) {
       console.warn('Web Share API non supportata');
       return;
     }
@@ -322,7 +376,7 @@ export class PwaService {
    * @returns {boolean} True se online
    */
   isOnline(): boolean {
-    return navigator.onLine;
+    return this.isBrowser ? navigator.onLine : true;
   }
 
   /**
@@ -331,6 +385,10 @@ export class PwaService {
    * @returns {Observable<boolean>} Observable dello stato online/offline
    */
   getNetworkStatus(): Observable<boolean> {
+    if (!this.isBrowser) {
+      return of(true);
+    }
+
     return new Observable((observer) => {
       observer.next(navigator.onLine);
 
@@ -359,6 +417,16 @@ export class PwaService {
     onLine: boolean;
     standalone: boolean;
   } {
+    if (!this.isBrowser) {
+      return {
+        userAgent: 'Server Side',
+        platform: 'server',
+        language: 'it',
+        onLine: true,
+        standalone: false,
+      };
+    }
+
     return {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
