@@ -1,6 +1,6 @@
 /**
  * @fileoverview Componente principale dell'applicazione
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  */
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';

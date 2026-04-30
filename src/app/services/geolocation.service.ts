@@ -1,6 +1,6 @@
 /**
  * @fileoverview Servizio di geolocalizzazione del browser
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  * 
  * @description Gestisce:
  * - Permessi di geolocalizzazione

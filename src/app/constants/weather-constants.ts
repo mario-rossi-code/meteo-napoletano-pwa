@@ -1,6 +1,6 @@
 /**
  * @fileoverview Costanti meteorologiche e mappature WMO codes
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  */
 
 import { WeatherCondition } from "../models/weather.model";

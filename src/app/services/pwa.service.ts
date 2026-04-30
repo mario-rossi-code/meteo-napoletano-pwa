@@ -1,6 +1,6 @@
 /**
  * @fileoverview Servizio PWA per Service Worker e notifiche
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  *
  * @description Gestisce:
  * - Registrazione Service Worker

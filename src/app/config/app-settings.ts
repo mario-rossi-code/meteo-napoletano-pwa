@@ -29,7 +29,7 @@ export interface AppSettings {
  * @type {AppSettings}
  */
 export const APP_SETTINGS: AppSettings = {
-  appName: 'Meteo Napulitano',
+  appName: 'Meteo Napoletano',
   appVersion: '1.0.0',
   apiBaseUrl: 'https://api.open-meteo.com/v1',
   apiTimeout: 10000,

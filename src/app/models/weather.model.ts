@@ -1,6 +1,6 @@
 /**
  * @fileoverview Modelli e interfacce per i dati meteorologici
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  */
 
 /**

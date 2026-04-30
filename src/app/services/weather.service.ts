@@ -1,6 +1,6 @@
 /**
  * @fileoverview Servizio meteorologico per gestire i dati meteo
- * @author Meteo Napulitano PWA
+ * @author Meteo Napoletano PWA
  *
  * @description Servizio centrale che gestisce:
  * - Recupero dati meteo da API Open-Meteo

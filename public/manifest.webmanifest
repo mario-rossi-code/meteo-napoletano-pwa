@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "name": "Meteo Napulitano",
+  "name": "Meteo Napoletano",
   "short_name": "Meteo Napoletano",
   "description": "Previsioni meteo con descrizioni napoletane",
   "start_url": "/",

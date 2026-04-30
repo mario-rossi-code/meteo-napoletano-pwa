@@ -74,7 +74,7 @@ export class SEOService {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: 'Meteo Napulitano',
+    name: 'Meteo Napoletano',
     description: 'PWA meteorologica per Napoli',
     url: window.location.href,
     image: '/assets/icons/icon-512x512.png',
