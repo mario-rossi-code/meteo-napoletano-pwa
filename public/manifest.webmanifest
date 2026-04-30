@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "name": "Meteo Napulitano",
-  "short_name": "Meteo Napoli",
-  "description": "PWA meteorologica per Napoli con descrizioni napoletane, previsioni orarie e giornaliere",
+  "short_name": "Meteo Napoletano",
+  "description": "Previsioni meteo con descrizioni napoletane",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -88,7 +88,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Meteo Napoli",
+      "name": "Napoli",
       "short_name": "Meteo",
       "description": "Visualizza meteo Napoli",
       "url": "/?city=Napoli",
