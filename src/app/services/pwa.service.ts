@@ -212,7 +212,7 @@ export class PwaService {
   private setupInstallPrompt(): void {
     // Previene il prompt automatico del browser
     window.addEventListener('beforeinstallprompt', (event: Event) => {
-      event.preventDefault();
+      // event.preventDefault();
       this.deferredPrompt = event;
       this.installPromptSubject.next(event);
       console.log('[PWA] Install prompt disponibile');
