@@ -16,11 +16,7 @@
       class="search-input"
       autocomplete="off"
     />
-    <button
-      (click)="onSearchSubmit()"
-      class="search-button"
-      title="Cerca meteo"
-    >
+    <button (click)="onSearchSubmit()" class="search-button" title="Cerca meteo">
       <i class="fas fa-search"></i>
     </button>
   </div>
@@ -33,11 +29,29 @@
 
   <!-- Update Notification -->
   <div class="update-notification" *ngIf="hasUpdate">
-    <p>📦 Nuovo aggiornamento disponibile!</p>
-    <button (click)="activateUpdate()" class="btn-update">
-      Aggiorna ora
-    </button>
+    <p>Nuovo aggiornamento disponibile!</p>
+    <button (click)="activateUpdate()" class="btn-update">Aggiorna ora</button>
   </div>
+
+  <!-- Loading Component -->
+  <app-loading *ngIf="loading$ | async" [phrase]="getCurrentLoadingPhrase()"></app-loading>
+
+  <!-- Main Content - Mostrato SOLO quando NON siamo in loading E abbiamo dati validi -->
+  <ng-container *ngIf="!(loading$ | async) && (weatherData$ | async)">
+    <main class="main-content">
+      <!-- Weather Card -->
+      <app-weather-card
+        [weatherData]="weatherData$ | async"
+        [cityName]="cityName$ | async"
+      ></app-weather-card>
+
+      <!-- Hourly Forecast -->
+      <app-hourly-forecast [weatherData]="weatherData$ | async"></app-hourly-forecast>
+
+      <!-- Daily Forecast -->
+      <app-forecast [weatherData]="weatherData$ | async"></app-forecast>
+    </main>
+  </ng-container>
 
   <!-- Error Messages -->
   <div class="error-container" *ngIf="error$ | async as error">
@@ -47,35 +61,10 @@
     </div>
   </div>
 
-  <!-- Loading Component -->
-  <app-loading
-  *ngIf="loading$ | async"
-  [phrase]="getCurrentLoadingPhrase()"
-></app-loading>
-
-  <!-- Main Content -->
-  <main class="main-content" *ngIf="!(loading$ | async)">
-  <!-- Weather Card -->
-  <app-weather-card
-    [weatherData]="weatherData$ | async"
-    [cityName]="cityName$ | async"
-  ></app-weather-card>
-
-  <!-- Hourly Forecast -->
-  <app-hourly-forecast
-    [weatherData]="weatherData$ | async"
-  ></app-hourly-forecast>
-
-  <!-- Daily Forecast -->
-  <app-forecast
-    [weatherData]="weatherData$ | async"
-  ></app-forecast>
-</main>
-
   <!-- Footer -->
   <footer class="app-footer">
     <p>© Meteo Napulitano — Previsioni Meteorologiche</p>
-    <div class="footer-actions">
+    <!-- <div class="footer-actions">
       <button
         (click)="installApp()"
         *ngIf="isAppInstallable()"
@@ -84,6 +73,6 @@
       >
         📱 Installa
       </button>
-    </div>
+    </div> -->
   </footer>
 </div>

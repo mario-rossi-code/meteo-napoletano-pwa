@@ -1,5 +1,5 @@
 /**
- * @fileoverview Componente card meteo corrente
+ *  * @fileoverview Componente card meteo corrente
  * File: src/app/components/weather-card/weather-card.component.ts
  */
 

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Funzioni utility e helper
  * File: src/app/utils/date-formatter.ts
- * 
+ *
  * @description Utility per formatting date, calcoli meteo
  */
 
@@ -193,8 +193,24 @@ export class WeatherUtils {
    * @returns {string} Direzione (N, NE, E, SE, S, SW, W, NW)
    */
   static getWindDirection(degrees: number): string {
-    const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-                       'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const directions = [
+      'N',
+      'NNE',
+      'NE',
+      'ENE',
+      'E',
+      'ESE',
+      'SE',
+      'SSE',
+      'S',
+      'SSW',
+      'SW',
+      'WSW',
+      'W',
+      'WNW',
+      'NW',
+      'NNW',
+    ];
     const index = Math.round(degrees / 22.5) % 16;
     return directions[index];
   }
@@ -252,13 +268,14 @@ export class WeatherUtils {
   static calculateFeelsLike(tempC: number, windKmh: number): number {
     // Wind chill formula
     if (tempC > 10 || windKmh < 4.8) return tempC;
-    
+
     const windMs = this.kmhToMs(windKmh);
-    const feelsLike = 13.12 + 
-                      0.6215 * tempC - 
-                      11.37 * Math.pow(windMs, 0.16) + 
-                      0.3965 * tempC * Math.pow(windMs, 0.16);
-    
+    const feelsLike =
+      13.12 +
+      0.6215 * tempC -
+      11.37 * Math.pow(windMs, 0.16) +
+      0.3965 * tempC * Math.pow(windMs, 0.16);
+
     return Math.round(feelsLike);
   }
 
@@ -272,10 +289,10 @@ export class WeatherUtils {
   static calculateDewPoint(tempC: number, humidity: number): number {
     const a = 17.27;
     const b = 237.7;
-    
-    const alpha = ((a * tempC) / (b + tempC)) + Math.log(humidity / 100);
+
+    const alpha = (a * tempC) / (b + tempC) + Math.log(humidity / 100);
     const dewPoint = (b * alpha) / (a - alpha);
-    
+
     return Math.round(dewPoint * 10) / 10;
   }
 }
@@ -292,11 +309,8 @@ export class ValidationUtils {
    * @returns {boolean} True se valido
    */
   static isValidCity(cityName: string): boolean {
-    return typeof cityName === 'string' && 
-           cityName.trim().length > 1 && 
-           cityName.length < 100;
-}
-
+    return typeof cityName === 'string' && cityName.trim().length > 1 && cityName.length < 100;
+  }
 
   /**
    * @method isValidCoordinates
@@ -517,7 +531,7 @@ export class StorageUtils {
  * @description Utility per logging (development only)
  */
 export class LoggerUtils {
-  private static isDev = !(/^(https?:)?\/\/.+\.[a-z]{2,}$/.test(window.location.href));
+  private static isDev = !/^(https?:)?\/\/.+\.[a-z]{2,}$/.test(window.location.href);
 
   /**
    * @method log
@@ -527,7 +541,7 @@ export class LoggerUtils {
    */
   static log(message: string, ...args: any[]): void {
     if (this.isDev) {
-      console.log(`[🌤️ Meteo] ${message}`, ...args);
+      console.log(`[WHEATER] Meteo: ${message}`, ...args);
     }
   }
 
@@ -538,7 +552,7 @@ export class LoggerUtils {
    * @param {any[]} args - Argomenti aggiuntivi
    */
   static error(message: string, ...args: any[]): void {
-    console.error(`[❌ Meteo Error] ${message}`, ...args);
+    console.error(`[WHEATER] Meteo Error: ${message}`, ...args);
   }
 
   /**
@@ -549,7 +563,7 @@ export class LoggerUtils {
    */
   static warn(message: string, ...args: any[]): void {
     if (this.isDev) {
-      console.warn(`[⚠️ Meteo Warning] ${message}`, ...args);
+      console.warn(`[WHEATER] Meteo Warning: ${message}`, ...args);
     }
   }
 
@@ -561,7 +575,7 @@ export class LoggerUtils {
    */
   static info(message: string, ...args: any[]): void {
     if (this.isDev) {
-      console.info(`[ℹ️ Meteo Info] ${message}`, ...args);
+      console.info(`[WHEATER] Meteo Info: ${message}`, ...args);
     }
   }
 
@@ -583,7 +597,7 @@ export class LoggerUtils {
    */
   static time(label: string): void {
     if (this.isDev) {
-      console.time(`[⏱️ ${label}]`);
+      console.time(`[TIMER] ${label}`);
     }
   }
 
@@ -594,7 +608,7 @@ export class LoggerUtils {
    */
   static timeEnd(label: string): void {
     if (this.isDev) {
-      console.timeEnd(`[⏱️ ${label}]`);
+      console.timeEnd(`[TIMER] ${label}`);
     }
   }
 }

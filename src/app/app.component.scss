@@ -20,6 +20,7 @@ $border-radius: 20px;
 $transition: 0.3s ease;
 
 // Breakpoints
+$breakpoint-lg: 601px;
 $breakpoint-md: 600px;
 $breakpoint-sm: 360px;
 
@@ -33,14 +34,6 @@ html,
 body {
   width: 100%;
   height: 100%;
-}
-
-body {
-  font-family: 'Balsamiq Sans', sans-serif;
-  background: linear-gradient(135deg, $dark-blue 0%, #003d7a 100%);
-  color: $text-light;
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
 // App Container
@@ -95,7 +88,6 @@ body {
   border: 1px solid $border-color;
   transition: box-shadow $transition;
 
-  &:hover,
   &:focus-within {
     box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
     background: rgba(255, 255, 255, 0.12);
@@ -138,7 +130,6 @@ body {
 
   &:hover {
     background: $light-blue;
-    transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(1, 167, 225, 0.4);
   }
 
@@ -240,7 +231,6 @@ body {
 
   &:hover {
     background: #f57c00;
-    transform: scale(1.05);
   }
 
   &:active {
@@ -325,7 +315,6 @@ body {
   &:hover {
     background: $primary-color;
     color: white;
-    transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(1, 167, 225, 0.3);
   }
 
@@ -335,24 +324,58 @@ body {
 }
 
 // Responsive Design
+@media (min-width: $breakpoint-lg) {
+  .search-box:hover {
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .search-button:hover {
+    transform: scale(1.05);
+  }
+
+  .btn-update:hover {
+    transform: scale(1.05);
+  }
+
+  .btn-install :hover {
+    transform: translateY(-2px);
+  }
+}
+
 @media (max-width: $breakpoint-md) {
   .app-container {
     padding: 0.8rem;
   }
 
   .app-header {
-    padding: 1rem 0;
-    margin-bottom: 0.8rem;
+    padding-bottom: 1rem;
+    padding: 0;
+    margin-bottom: 1rem;
+  }
+
+  .app-header h1 {
+    margin-bottom: 0;
   }
 
   .search-box {
-    margin-bottom: 0.8rem;
-    padding: 0.4rem;
+    border-radius: 25px;
+    padding: 0.3rem;
   }
 
   .search-input {
-    padding: 0.6rem 0.8rem;
+    padding: 0.4rem 0.6rem;
     font-size: 0.95rem;
+  }
+
+  .search-button {
+    min-width: 35px;
+    height: 35px;
+    padding: 0.5rem;
+
+    i {
+      font-size: 0.9rem;
+    }
   }
 
   .main-content {
@@ -367,20 +390,6 @@ body {
 
   .app-subtitle {
     font-size: 0.9rem;
-  }
-
-  .search-box {
-    border-radius: 25px;
-  }
-
-  .search-button {
-    min-width: 40px;
-    height: 40px;
-    padding: 0.6rem;
-
-    i {
-      font-size: 0.9rem;
-    }
   }
 }
 

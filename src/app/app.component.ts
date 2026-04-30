@@ -7,7 +7,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, first } from 'rxjs/operators';
 
 import { WeatherService } from './services/weather.service';
 import { GeolocationService } from './services/geolocation.service';
@@ -46,18 +46,21 @@ export class AppComponent implements OnInit, OnDestroy {
   /** @public Servizio meteo */
   public readonly weatherService = inject(WeatherService);
   /** @public Servizio geolocalizzazione */
-  public readonly  geolocationService = inject(GeolocationService);
+  public readonly geolocationService = inject(GeolocationService);
   /** @public Servizio PWA */
-  public readonly  pwaService = inject(PwaService);
+  public readonly pwaService = inject(PwaService);
 
   /** @public Input città */
-  cityInput = DEFAULT_CITY;
+  cityInput = '';
 
   /** @public Flag app online */
   isOnline = navigator.onLine;
 
   /** @public Flag aggiornamento disponibile */
   hasUpdate = false;
+
+  /** @private Flag per evitare chiamate multiple */
+  private isInitialized = false;
 
   // Esponi le proprietà necessarie per il template
   public get loading$() {
@@ -76,6 +79,11 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.weatherService.cityName$;
   }
 
+  /**
+   * @method getCurrentLoadingPhrase
+   * @description Ritorna la frase di caricamento corrente
+   * @returns {string} Frase di caricamento
+   */
   public getCurrentLoadingPhrase(): string {
     return this.weatherService.getCurrentLoadingPhrase();
   }
@@ -85,9 +93,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Inizializza meteo dalla geolocalizzazione
-    this.initializeWeather();
-
     // Monitora stato rete
     this.pwaService
       .getNetworkStatus()
@@ -95,22 +100,19 @@ export class AppComponent implements OnInit, OnDestroy {
       .subscribe((isOnline) => {
         this.isOnline = isOnline;
         if (isOnline) {
-          console.log('🟢 Connessione online');
+          console.log('[NETWORK] Connessione online');
         } else {
-          console.log('🔴 Modalità offline');
+          console.log('[NETWORK] Modalità offline');
         }
       });
 
     // Monitora aggiornamenti disponibili
-    this.weatherService.loading$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe();
+    this.pwaService.updateAvailable$.pipe(takeUntil(this.destroy$)).subscribe((update) => {
+      this.hasUpdate = update.available;
+    });
 
-    this.pwaService.updateAvailable$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((update) => {
-        this.hasUpdate = update.available;
-      });
+    // Inizializza l'app
+    this.initializeApp();
   }
 
   ngOnDestroy(): void {
@@ -119,36 +121,110 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * @method initializeWeather
-   * @description Inizializza i dati meteo
+   * @method initializeApp
+   * @description Inizializza l'app gestendo geolocalizzazione e fallback
    * @private
    */
-  private initializeWeather(): void {
+  private initializeApp(): void {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
+    // Attiva il loading
+    this.weatherService.startLoading();
+
+    // Controlla se c'è una città salvata in cache
+    const lastCity = this.getLastSearchedCity();
+
     if (this.geolocationService.isGeolocationAvailable()) {
+      // Chiede la posizione - il browser mostrerà il suo prompt nativo
       this.geolocationService
         .getCurrentLocation()
         .pipe(takeUntil(this.destroy$))
-        .subscribe(
-          (coords) => {
-            console.log('📍 Posizione ottenuta:', coords);
+        .subscribe({
+          next: (coordinates) => {
+            console.log('[GEOLOCALZATION] Posizione ottenuta:', coordinates);
+            // Salva che l'utente ha accettato
+            localStorage.setItem('geolocation_granted', 'true');
             this.weatherService
-              .searchWeatherByCoordinates(coords.latitude, coords.longitude)
+              .searchWeatherByCoordinates(coordinates.latitude, coordinates.longitude)
               .pipe(takeUntil(this.destroy$))
               .subscribe({
                 error: () => {
-                  // Fallback a città di default
-                  this.searchWeather(DEFAULT_CITY);
+                  // Fallback a ultima città o Napoli
+                  this.fallbackToCity(lastCity);
                 },
               });
           },
-          () => {
-            // Fallback a città di default se geolocalizzazione fallisce
-            this.searchWeather(DEFAULT_CITY);
-          }
-        );
+          error: (error) => {
+            console.log(
+              '[GEOLOCALZATION] Geolocalizzazione negata o non disponibile:',
+              error.message,
+            );
+            // Salva che l'utente ha negato
+            localStorage.setItem('geolocation_granted', 'false');
+            // Fallback a ultima città o Napoli
+            this.fallbackToCity(lastCity);
+          },
+        });
     } else {
-      // Fallback se geolocalizzazione non disponibile
-      this.searchWeather(DEFAULT_CITY);
+      // Geolocalizzazione non supportata dal browser
+      console.log('[GEOLOCALZATION] Geolocalizzazione non supportata dal browser');
+      this.fallbackToCity(lastCity);
+    }
+  }
+
+  /**
+   * @method fallbackToCity
+   * @description Fallback a ultima città o Napoli
+   * @private
+   * @param {string|null} lastCity - Ultima città cercata
+   */
+  private fallbackToCity(lastCity: string | null): void {
+    const cityToSearch = lastCity || DEFAULT_CITY;
+    console.log(`[GEOLOCALZATION] Fallback a città: ${cityToSearch}`);
+
+    if (cityToSearch) {
+      this.weatherService
+        .searchWeatherByCity(cityToSearch)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          error: (error) => {
+            console.error('❌ Errore fallback:', error);
+            // Se anche il fallback fallisce, prova con Napoli
+            if (cityToSearch !== DEFAULT_CITY) {
+              this.weatherService
+                .searchWeatherByCity(DEFAULT_CITY)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe();
+            }
+          },
+        });
+    }
+  }
+
+  /**
+   * @method getLastSearchedCity
+   * @description Recupera l'ultima città cercata dalla cache
+   * @private
+   * @returns {string|null} Nome dell'ultima città o null
+   */
+  private getLastSearchedCity(): string | null {
+    try {
+      // Cerca nei dati cache del meteo
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('weather_') && key !== 'weather_geo_') {
+          // Rimuovi il prefisso 'weather_' per ottenere il nome città
+          const city = key.replace('weather_', '');
+          if (city && !city.startsWith('geo_')) {
+            return city;
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.warn('Errore lettura ultima città:', error);
+      return null;
     }
   }
 
@@ -158,7 +234,12 @@ export class AppComponent implements OnInit, OnDestroy {
    * @param {string} cityName - Nome della città
    */
   searchWeather(cityName?: string): void {
-    const city = cityName || this.cityInput || DEFAULT_CITY;
+    const city = cityName || this.cityInput;
+
+    if (!city || !city.trim()) {
+      return;
+    }
+
     this.cityInput = city;
 
     this.weatherService
@@ -166,10 +247,10 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
-          console.log('✅ Meteo aggiornato per:', city);
+          console.log('[WEATHER] Meteo aggiornato per:', city);
         },
         error: (error) => {
-          console.error('❌ Errore ricerca:', error.message);
+          console.error('[WEATHER] Errore ricerca:', error.message);
         },
       });
   }
@@ -200,7 +281,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async installApp(): Promise<void> {
     const installed = await this.pwaService.installApp();
     if (installed) {
-      console.log('✅ App installata con successo');
+      console.log(' [PWA] App installata con successo');
     }
   }
 

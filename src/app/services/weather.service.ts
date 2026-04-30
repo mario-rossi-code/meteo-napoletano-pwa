@@ -60,8 +60,10 @@ export class WeatherService {
   /** @public Osservabile del nome città */
   cityName$ = this.cityNameSubject.asObservable();
 
-  /** @private Frase di caricamento casuale */
-  private currentLoadingPhrase = LOADING_PHRASES[0];
+  /** @private Soggetto per la frase di caricamento */
+  private loadingPhraseSubject = new BehaviorSubject<string>(LOADING_PHRASES[0]);
+  /** @public Osservabile della frase di caricamento */
+  loadingPhrase$ = this.loadingPhraseSubject.asObservable();
 
   constructor() {
     this.initializeCache();
@@ -89,20 +91,15 @@ export class WeatherService {
    * @description Cerca il meteo per nome città
    * @param {string} cityName - Nome della città
    * @returns {Observable<WeatherData>} Dati meteorologici
-   * @example
-   * this.weatherService.searchWeatherByCity('Roma').subscribe(
-   *   data => console.log('Meteo Roma:', data)
-   * );
    */
   searchWeatherByCity(cityName: string): Observable<WeatherData> {
     if (!cityName.trim()) {
-      this.loadingSubject.next(false); // Importante: reset loading anche in caso di errore
+      this.loadingSubject.next(false);
       return throwError(() => new Error('Nome città non valido'));
     }
 
-    this.loadingSubject.next(true);
+    this.startLoading(); // Usa il metodo unificato
     this.errorSubject.next(null);
-    this.showRandomLoadingPhrase();
 
     return this.geocodeCity(cityName.trim()).pipe(
       switchMap((result) => {
@@ -116,12 +113,14 @@ export class WeatherService {
           data,
           CACHE_CONFIG.WEATHER_TTL,
         );
-        this.loadingSubject.next(false); // Successo: disattiva loading
+        // Disattiva loading
+        this.loadingSubject.next(false);
       }),
       catchError((error) => {
         const errorMsg = error.message || 'Errore nel recupero dei dati meteo';
         this.errorSubject.next(errorMsg);
-        this.loadingSubject.next(false); // ERRORE: disattiva loading
+        // Disattiva loading
+        this.loadingSubject.next(false);
         return throwError(() => error);
       }),
       retry({ count: 1, delay: 1000 }),
@@ -137,9 +136,8 @@ export class WeatherService {
    * @returns {Observable<WeatherData>} Dati meteorologici
    */
   searchWeatherByCoordinates(latitude: number, longitude: number): Observable<WeatherData> {
-    this.loadingSubject.next(true);
+    this.startLoading();
     this.errorSubject.next(null);
-    this.showRandomLoadingPhrase();
 
     return this.reverseGeocode(latitude, longitude).pipe(
       switchMap((cityName) => {
@@ -148,11 +146,11 @@ export class WeatherService {
       }),
       tap((data) => {
         this.weatherDataSubject.next(data);
-        this.loadingSubject.next(false); // Successo: disattiva loading
+        this.loadingSubject.next(false);
       }),
       catchError((error) => {
         this.errorSubject.next(error.message || 'Errore geocoding inverso');
-        this.loadingSubject.next(false); // ERRORE: disattiva loading
+        this.loadingSubject.next(false);
         return throwError(() => error);
       }),
       shareReplay(1),
@@ -160,11 +158,30 @@ export class WeatherService {
   }
 
   /**
+   * @method startLoading
+   * @description Attiva manualmente lo stato di loading con una frase casuale FISSA
+   */
+  startLoading(): void {
+    // Genera UNA SOLA frase casuale all'inizio del caricamento
+    const randomIndex = Math.floor(Math.random() * LOADING_PHRASES.length);
+    const fixedPhrase = LOADING_PHRASES[randomIndex];
+    this.loadingPhraseSubject.next(fixedPhrase);
+    this.loadingSubject.next(true);
+  }
+
+  /**
+   * @method getCurrentLoadingPhrase
+   * @description Ritorna la frase di caricamento corrente
+   * @returns {string} Frase di caricamento
+   */
+  getCurrentLoadingPhrase(): string {
+    return this.loadingPhraseSubject.value;
+  }
+
+  /**
    * @method geocodeCity
    * @description Geocodifica un nome città in coordinate
    * @private
-   * @param {string} cityName - Nome della città
-   * @returns {Observable<GeocodingResult>} Risultato geocodifica
    */
   private geocodeCity(cityName: string): Observable<GeocodingResult> {
     const cacheKey = CACHE_CONFIG.STORAGE_KEY_PREFIX + 'geo_' + cityName;
@@ -200,111 +217,34 @@ export class WeatherService {
    * @method reverseGeocode
    * @description Geocodifica inversa per ottenere il quartiere
    * @private
-   * @param {number} latitude - Latitudine
-   * @param {number} longitude - Longitudine
-   * @returns {Observable<string>} Nome del quartiere
    */
   private reverseGeocode(latitude: number, longitude: number): Observable<string> {
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=it&zoom=18`;
-  
-  return this.fetchDataWithOptions<any>(url, {
-    headers: { 'User-Agent': 'MeteoNapulitanoApp/1.0' }
-  }).pipe(
-    switchMap((response) => {
-      if (response?.display_name) {
-        // Prendi la prima parte del display_name ed escludi i numeri civici
-        let location = response.display_name.split(',')[0].trim();
-        
-        // Se la prima parte è una via con numero, prendi la seconda
-        if (/\d/.test(location) && location.includes(' ')) {
-          const parts = response.display_name.split(',');
-          location = parts[1]?.trim() || parts[0].trim();
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=it&zoom=18`;
+
+    return this.fetchDataWithOptions<any>(url, {
+      headers: { 'User-Agent': 'MeteoNapulitanoApp/1.0' },
+    }).pipe(
+      switchMap((response) => {
+        if (response?.display_name) {
+          let location = response.display_name.split(',')[0].trim();
+
+          if (/\d/.test(location) && location.includes(' ')) {
+            const parts = response.display_name.split(',');
+            location = parts[1]?.trim() || parts[0].trim();
+          }
+
+          return of(location);
         }
-        
-        return of(location);
-      }
-      return of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
-    }),
-    catchError(() => of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`))
-  );
-}
-
-  /**
-   * @method isAdministrativeArea
-   * @description Verifica se è un'area amministrativa (non un quartiere)
-   * @private
-   */
-  private isAdministrativeArea(name: string): boolean {
-    const adminTerms = [
-      'Municipalità',
-      'Municipality',
-      'Distretto',
-      'District',
-      'Circoscrizione',
-      'Comune',
-    ];
-    return adminTerms.some((term) => name.includes(term));
-  }
-
-  /**
-   * @method isMunicipality
-   * @description Verifica se un nome è una municipalità amministrativa
-   * @private
-   * @param {string} name - Nome da verificare
-   * @returns {boolean} True se è una municipalità
-   */
-  private isMunicipality(name: string): boolean {
-    const municipalityPatterns = [
-      /municipalità/i,
-      /municipality/i,
-      /distretto/i,
-      /district/i,
-      /circoscrizione/i,
-    ];
-
-    return municipalityPatterns.some((pattern) => pattern.test(name));
-  }
-
-  /**
-   * @method extractNeighborhoodFromDisplayName
-   * @description Estrae il quartiere dal display_name di Nominatim
-   * @private
-   * @param {string} displayName - Display name completo
-   * @returns {string|null} Nome del quartiere o null
-   */
-  private extractNeighborhoodFromDisplayName(displayName: string): string | null {
-    if (!displayName) return null;
-
-    // Il display_name è tipo: "San Pietro a Patierno, Municipalità 7, Napoli, Campania, Italia"
-    // Prendiamo la prima parte prima della virgola
-    const parts = displayName.split(',');
-
-    if (parts.length > 0) {
-      const firstPart = parts[0].trim();
-      // Se la prima parte non è una municipalità, è probabilmente il quartiere
-      if (!this.isMunicipality(firstPart)) {
-        return firstPart;
-      }
-
-      // Altrimenti prova con la seconda parte
-      if (parts.length > 1) {
-        const secondPart = parts[1].trim();
-        if (!this.isMunicipality(secondPart)) {
-          return secondPart;
-        }
-      }
-    }
-
-    return null;
+        return of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+      }),
+      catchError(() => of(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`)),
+    );
   }
 
   /**
    * @method fetchDataWithOptions
    * @description Fetch generico con opzioni
    * @private
-   * @param {string} url - URL della richiesta
-   * @param {RequestInit} options - Opzioni fetch
-   * @returns {Observable<T>} Dati recuperati
    */
   private fetchDataWithOptions<T>(url: string, options?: RequestInit): Observable<T> {
     return new Observable((observer) => {
@@ -329,9 +269,6 @@ export class WeatherService {
    * @method fetchWeatherData
    * @description Recupera i dati meteorologici da Open-Meteo
    * @private
-   * @param {number} latitude - Latitudine
-   * @param {number} longitude - Longitudine
-   * @returns {Observable<WeatherData>} Dati meteorologici
    */
   private fetchWeatherData(latitude: number, longitude: number): Observable<WeatherData> {
     const params = new URLSearchParams({
@@ -352,9 +289,6 @@ export class WeatherService {
    * @method fetchData
    * @description Fetch generico con error handling
    * @private
-   * @template T - Tipo di dati da recuperare
-   * @param {string} url - URL della richiesta
-   * @returns {Observable<T>} Dati recuperati
    */
   private fetchData<T>(url: string): Observable<T> {
     return new Observable((observer) => {
@@ -378,8 +312,6 @@ export class WeatherService {
   /**
    * @method weatherCodeToCondition
    * @description Converte WMO code a condizione meteorologica
-   * @param {number} code - WMO weather code
-   * @returns {WeatherCondition} Condizione meteorologica
    */
   weatherCodeToCondition(code: number): WeatherCondition {
     return WMO_CODE_MAPPING[code] || WeatherCondition.DEFAULT;
@@ -388,8 +320,6 @@ export class WeatherService {
   /**
    * @method getRandomDescription
    * @description Ritorna descrizione napoletana casuale
-   * @param {WeatherCondition} condition - Condizione meteorologica
-   * @returns {string} Descrizione napoletana casuale
    */
   getRandomDescription(condition: WeatherCondition): string {
     const descriptions =
@@ -401,40 +331,15 @@ export class WeatherService {
   /**
    * @method getItalianDescription
    * @description Ritorna descrizione italiana ufficiale
-   * @param {WeatherCondition} condition - Condizione meteorologica
-   * @returns {string} Descrizione italiana
    */
   getItalianDescription(condition: WeatherCondition): string {
     return WEATHER_DESCRIPTIONS_IT[condition] || '';
   }
 
   /**
-   * @method showRandomLoadingPhrase
-   * @description Mostra frase di caricamento casuale
-   * @private
-   */
-  private showRandomLoadingPhrase(): void {
-    const randomIndex = Math.floor(Math.random() * LOADING_PHRASES.length);
-    this.currentLoadingPhrase = LOADING_PHRASES[randomIndex];
-  }
-
-  /**
-   * @method getCurrentLoadingPhrase
-   * @description Ritorna la frase di caricamento corrente
-   * @returns {string} Frase di caricamento
-   */
-  getCurrentLoadingPhrase(): string {
-    return this.currentLoadingPhrase;
-  }
-
-  /**
    * @method saveToCache
    * @description Salva dati in cache locale
    * @private
-   * @template T - Tipo di dati
-   * @param {string} key - Chiave cache
-   * @param {T} data - Dati da salvare
-   * @param {number} ttl - Time to live in millisecondi
    */
   private saveToCache<T>(key: string, data: T, ttl: number): void {
     try {
@@ -453,9 +358,6 @@ export class WeatherService {
    * @method getFromCache
    * @description Recupera dati da cache locale
    * @private
-   * @template T - Tipo di dati
-   * @param {string} key - Chiave cache
-   * @returns {T | null} Dati recuperati o null
    */
   private getFromCache<T>(key: string): T | null {
     try {
@@ -479,8 +381,6 @@ export class WeatherService {
    * @method isCacheValid
    * @description Verifica se cache è valida
    * @private
-   * @param {string} key - Chiave cache
-   * @returns {boolean} True se cache valida
    */
   private isCacheValid(key: string): boolean {
     try {
@@ -498,9 +398,6 @@ export class WeatherService {
    * @method isCacheExpired
    * @description Verifica se cache è scaduta
    * @private
-   * @template T - Tipo di dati
-   * @param {CacheData<T>} cacheData - Dati cache
-   * @returns {boolean} True se scaduta
    */
   private isCacheExpired<T>(cacheData: CacheData<T>): boolean {
     return Date.now() - cacheData.timestamp > cacheData.ttl;

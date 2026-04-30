@@ -67,10 +67,10 @@ export class PwaService {
       if (this.swUpdate && this.swUpdate.isEnabled) {
         this.checkForUpdates();
       } else {
-        console.log('ℹ️ Service Worker non disponibile - PWA features limitate');
+        console.log('[PWA] Service Worker non disponibile - PWA features limitate');
       }
     } else {
-      console.log('ℹ️ Ambiente non browser - PWA features disabilitate');
+      console.log('[PWA] Ambiente non browser - PWA features disabilitate');
     }
   }
 
@@ -85,7 +85,7 @@ export class PwaService {
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true;
 
-    console.log(`📱 PWA Mode: ${this.isStandalone ? 'Standalone' : 'Browser'}`);
+    console.log(`[PWA] PWA Mode: ${this.isStandalone ? 'Standalone' : 'Browser'}`);
 
     // Registra Service Worker se supportato
     if ('serviceWorker' in navigator) {
@@ -102,7 +102,7 @@ export class PwaService {
     navigator.serviceWorker
       .register('/ngsw-worker.js', { scope: '/' })
       .then((registration) => {
-        console.log('✅ Service Worker registrato:', registration);
+        console.log('[SERVICEWORKER] Service Worker registrato:', registration);
 
         // Monitora i cambiamenti del Service Worker
         registration.addEventListener('updatefound', () => {
@@ -110,14 +110,14 @@ export class PwaService {
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'activated') {
-                console.log('🔄 Nuovo Service Worker attivato');
+                console.log('[SERVICEWORKER] Nuovo Service Worker attivato');
               }
             });
           }
         });
       })
       .catch((error) => {
-        console.warn('⚠️ Service Worker non registrato (forse in sviluppo):', error);
+        console.warn('[SERVICEWORKER] Service Worker non registrato (forse in sviluppo):', error);
       });
   }
 
@@ -129,7 +129,7 @@ export class PwaService {
   private checkForUpdates(): void {
     // Verifica che SwUpdate sia disponibile e abilitato
     if (!this.swUpdate || !this.swUpdate.isEnabled) {
-      console.log('ℹ️ SwUpdate non disponibile, skip aggiornamenti automatici');
+      console.log('[SERVICEWORKER] SwUpdate non disponibile, skip aggiornamenti automatici');
       return;
     }
 
@@ -141,7 +141,7 @@ export class PwaService {
       .pipe(
         switchMap(() => this.checkForUpdateSafe()),
         catchError((error) => {
-          console.warn('⚠️ Errore controllo aggiornamenti:', error);
+          console.warn('[SERVICEWORKER] Errore controllo aggiornamenti:', error);
           return of(undefined);
         }),
       )
@@ -155,7 +155,7 @@ export class PwaService {
           message: 'Nuovo aggiornamento disponibile!',
         });
 
-        console.log('🔄 Aggiornamento disponibile');
+        console.log('[SERVICEWORKER] Aggiornamento disponibile');
 
         // Auto-aggiorna dopo 5 secondi
         setTimeout(() => {
@@ -180,7 +180,7 @@ export class PwaService {
     } catch (error) {
       // Ignora l'errore di Service Worker non disponibile
       if (error instanceof Error && !error.message.includes('disabled or not supported')) {
-        console.warn('⚠️ Errore controllo aggiornamenti:', error);
+        console.warn('[SERVICEWORKER] Errore controllo aggiornamenti:', error);
       }
     }
   }
@@ -191,16 +191,16 @@ export class PwaService {
    */
   async activateUpdate(): Promise<void> {
     if (!this.swUpdate || !this.swUpdate.isEnabled) {
-      console.warn('⚠️ Impossibile attivare aggiornamento: SwUpdate non disponibile');
+      console.warn('[SERVICEWORKER] Impossibile attivare aggiornamento: SwUpdate non disponibile');
       return;
     }
 
     try {
       await this.swUpdate.activateUpdate();
-      console.log('✅ Aggiornamento attivato, ricarico...');
+      console.log('[SERVICEWORKER] Aggiornamento attivato, ricarico...');
       window.location.reload();
     } catch (error) {
-      console.error('❌ Errore attivazione aggiornamento:', error);
+      console.error('[SERVICEWORKER] Errore attivazione aggiornamento:', error);
     }
   }
 
@@ -215,11 +215,11 @@ export class PwaService {
       event.preventDefault();
       this.deferredPrompt = event;
       this.installPromptSubject.next(event);
-      console.log('📦 Install prompt disponibile');
+      console.log('[PWA] Install prompt disponibile');
     });
 
     window.addEventListener('appinstalled', () => {
-      console.log('✅ PWA installata');
+      console.log('[PWA] PWA installata');
       this.deferredPrompt = null;
       this.installPromptSubject.next(null);
     });
@@ -246,11 +246,11 @@ export class PwaService {
       const choiceResult = await (this.deferredPrompt as any).userChoice;
 
       if (choiceResult.outcome === 'accepted') {
-        console.log("✅ Utente ha accettato l'installazione");
+        console.log("[PWA] Utente ha accettato l'installazione");
         this.deferredPrompt = null;
         return true;
       } else {
-        console.log("❌ Utente ha rifiutato l'installazione");
+        console.log("[PWA] Utente ha rifiutato l'installazione");
         return false;
       }
     } catch (error) {
@@ -362,7 +362,7 @@ export class PwaService {
 
     try {
       await navigator.share(data);
-      console.log('✅ Condivisione avvenuta');
+      console.log('[PWA] Condivisione avvenuta');
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
         console.error('Errore condivisione:', error);

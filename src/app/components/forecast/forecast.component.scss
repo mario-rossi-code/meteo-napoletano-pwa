@@ -1,3 +1,8 @@
+// Breakpoints
+$breakpoint-lg: 601px;
+$breakpoint-md: 600px;
+$breakpoint-sm: 360px;
+
 .forecast-container {
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.08);
@@ -32,11 +37,6 @@
   background: rgba(1, 167, 225, 0.1);
   border-radius: 12px;
   transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(1, 167, 225, 0.15);
-    // transform: translateY(-2px);
-  }
 
   h4 {
     font-size: 0.9rem;
@@ -77,7 +77,14 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (min-width: $breakpoint-lg) {
+  .forecast-day-card:hover {
+    background: rgba(1, 167, 225, 0.15);
+    // transform: translateY(-2px);
+  }
+}
+
+@media (max-width: $breakpoint-md) {
   .forecast-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;

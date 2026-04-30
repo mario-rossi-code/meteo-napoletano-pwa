@@ -20,7 +20,7 @@ export class PerformanceMonitor {
     // Type guard per LCP
     if ('renderTime' in lastEntry || 'loadTime' in lastEntry) {
       const lcpEntry = lastEntry as any;
-      console.log('LCP:', lcpEntry.renderTime || lcpEntry.loadTime);
+      console.log('[PERFORMANCE] LCP:', lcpEntry.renderTime || lcpEntry.loadTime);
     }
   });
   lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
@@ -34,7 +34,7 @@ export class PerformanceMonitor {
         const layoutShiftEntry = entry as any;
         if (!layoutShiftEntry.hadRecentInput) {
           clsValue += layoutShiftEntry.value;
-          console.log('CLS:', clsValue);
+          console.log('[PERFORMANCE] CLS:', clsValue);
         }
       }
     }
@@ -47,7 +47,7 @@ export class PerformanceMonitor {
     // Type guard per FID
     if ('processingDuration' in firstInput) {
       const fidEntry = firstInput as any;
-      console.log('FID:', fidEntry.processingDuration);
+      console.log('[PERFORMANCE] FID:', fidEntry.processingDuration);
     }
   });
   fidObserver.observe({ entryTypes: ['first-input'] });
